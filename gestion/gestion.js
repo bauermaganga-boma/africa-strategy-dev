@@ -20,7 +20,8 @@
 
   var state = load();
   var ui = { view: 'dashboard', dq: '', df: { statut: '', secteur: '', resp: '', prio: '' }, dmode: 'liste',
-    sq: '', sf: { statut: '', dossier: '', resp: '', cat: '' }, smode: 'kanban', open: null };
+    sq: '', sf: { statut: '', dossier: '', resp: '', cat: '' }, smode: 'kanban', open: null,
+    plan: { zoom: 'standard', dossier: '', sujets: true, closed: false, scrollTo: 'today' } };
 
   /* ---------- Utilitaires ---------- */
   function $(s, r) { return (r || document).querySelector(s); }
@@ -55,6 +56,7 @@
     try {
       var raw = localStorage.getItem(KEY);
       if (raw) { var s = JSON.parse(raw); if (s && Array.isArray(s.dossiers) && Array.isArray(s.sujets)) { s.seq = s.seq || s.dossiers.length; return s; } }
+      else if (raw === null) { var d0 = empty(); demoData(d0); try { localStorage.setItem(KEY, JSON.stringify(d0)); } catch (e2) {} return d0; }
     } catch (e) {}
     return empty();
   }
@@ -63,40 +65,61 @@
     try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
     catch (e) { storageOk = false; toast('Enregistrement impossible dans ce navigateur : pensez à exporter vos données.'); }
   }
-  function nextRef() {
-    state.seq = (state.seq || 0) + 1;
-    return 'AD-' + new Date().getFullYear() + '-' + ('00' + state.seq).slice(-3);
+  function nextRef(st) {
+    st = st || state;
+    st.seq = (st.seq || 0) + 1;
+    return 'AD-' + new Date().getFullYear() + '-' + ('00' + st.seq).slice(-3);
   }
   function log(d, text) { d.journal = d.journal || []; d.journal.unshift({ d: new Date().toISOString(), t: text }); }
 
-  /* ---------- Exemples fictifs ---------- */
-  function loadExamples() {
-    var a = { id: uid(), ref: nextRef(), titre: '[Exemple] Centrale solaire 50 MW', client: 'Société énergétique (fictive)', typeClient: 'Entreprise privée', pays: 'Sénégal', secteur: 'Énergie',
-      service: SERVICES[1], statut: 'Proposition', priorite: 'Haute', responsable: 'À définir', ouverture: plusDays(-30), montant: 45000000000, devise: 'FCFA', echeance: plusDays(12),
-      notes: 'Dossier fictif pour illustrer l\'outil : structuration du financement, accord d\'achat d\'électricité, recherche d\'investisseurs.', journal: [] };
-    var b = { id: uid(), ref: nextRef(), titre: '[Exemple] Programme de logements sociaux', client: 'Ministère (fictif)', typeClient: 'État / collectivité', pays: 'Sénégal', secteur: 'Immobilier et hôtellerie',
-      service: SERVICES[3], statut: 'En cours', priorite: 'Normale', responsable: 'À définir', ouverture: plusDays(-90), montant: 12000000, devise: 'EUR', echeance: plusDays(60),
-      notes: 'Dossier fictif : montage PPP et recherche de bailleurs.', journal: [] };
-    var c = { id: uid(), ref: nextRef(), titre: '[Exemple] Plateforme de données sécurisée', client: 'Opérateur numérique (fictif)', typeClient: 'Entreprise privée', pays: 'Côte d\'Ivoire', secteur: 'Technologie et data centers',
-      service: SERVICES[4], statut: 'Qualification', priorite: 'Normale', responsable: 'À définir', ouverture: plusDays(-7), montant: '', devise: 'USD', echeance: '',
-      notes: 'Dossier fictif : cadrage du besoin avant proposition.', journal: [] };
-    var d = { id: uid(), ref: nextRef(), titre: '[Exemple] Restructuration d\'un groupe agro-industriel', client: 'Groupe agro-industriel (fictif)', typeClient: 'Entreprise privée', pays: 'Mali', secteur: 'Agriculture et élevage',
-      service: SERVICES[5], statut: 'Prospect', priorite: 'Basse', responsable: 'À définir', ouverture: plusDays(-3), montant: 3000000, devise: 'EUR', echeance: plusDays(30),
-      notes: 'Dossier fictif.', journal: [] };
-    [a, b, c, d].forEach(function (x) { log(x, 'Dossier créé (exemple)'); });
-    state.dossiers.push(a, b, c, d);
-    function s(t, dos, cat, st, pr, ech) { state.sujets.push({ id: uid(), titre: t, dossierId: dos ? dos.id : '', categorie: cat, statut: st, priorite: pr, assigne: 'À définir', echeance: ech, notes: '' }); }
-    s('[Exemple] Finaliser la note d\'information investisseurs', a, 'Financement', 'En cours', 'Haute', plusDays(5));
-    s('[Exemple] Valider le modèle financier', a, 'Analyse / étude', 'À faire', 'Haute', plusDays(-2));
-    s('[Exemple] Relire le projet de contrat d\'achat d\'électricité', a, 'Juridique et fiscal', 'En attente', 'Normale', plusDays(9));
-    s('[Exemple] Réunion de cadrage avec le ministère', b, 'Relation institutionnelle', 'À faire', 'Normale', plusDays(3));
-    s('[Exemple] Cartographier les bailleurs potentiels', b, 'Financement', 'Terminé', 'Normale', plusDays(-10));
-    s('[Exemple] Recueillir le besoin détaillé du client', c, 'Commercial', 'En cours', 'Normale', plusDays(6));
-    s('[Exemple] Préparer la proposition d\'accompagnement', d, 'Commercial', 'À faire', 'Basse', plusDays(14));
-    s('[Exemple] Veille : nouveaux mécanismes de garantie en Afrique de l\'Ouest', null, 'Veille', 'En cours', 'Basse', '');
-    s('[Exemple] Mettre à jour la présentation du cabinet', null, 'Administratif', 'À faire', 'Basse', plusDays(20));
-    save();
+    /* ---------- Données de démonstration (fictives) ---------- */
+  function jr(daysAgo, text) { var d = new Date(); d.setDate(d.getDate() - daysAgo); d.setHours(10, 0, 0, 0); return { d: d.toISOString(), t: text }; }
+  function demoData(st) {
+    var NOTE = ' Données fictives, pour démonstration.';
+    var energie = { id: uid(), ref: nextRef(st), titre: 'Énergie', client: 'Compagnie nationale d\'électricité (fictive)', typeClient: 'Institution publique', pays: 'Gabon', secteur: 'Énergie',
+      service: SERVICES[1], statut: 'En cours', priorite: 'Haute', responsable: 'Awa S.', ouverture: plusDays(-75), montant: 180000000000, devise: 'FCFA', echeance: plusDays(420),
+      notes: 'Programme d\'électrification : centrale solaire de 120 MW, ligne de raccordement et réseau intelligent.\nFinancement mixte : bailleurs internationaux et investisseurs institutionnels, adossé à un accord d\'achat d\'électricité (PPA) et à une garantie souveraine.\nObjectifs : accès élargi à l\'électricité, baisse des coûts de production, transition énergétique maîtrisée.' + NOTE,
+      journal: [jr(3, 'Réunion avec la direction financière : version 2 du modèle financier validée.'), jr(18, 'Premier échange sur les termes du PPA (tarif, durée, clauses de révision).'),
+        jr(45, 'Étude de faisabilité technico-économique remise au client.'), jr(75, 'Dossier ouvert — mandat de conseil signé.')] };
+    var oil = { id: uid(), ref: nextRef(st), titre: 'Oil and gas', client: 'Société gabonaise de raffinage (fictive)', typeClient: 'Entreprise privée', pays: 'Gabon', secteur: 'Pétrole et gaz',
+      service: SERVICES[1], statut: 'Proposition', priorite: 'Haute', responsable: 'Chantal O.', ouverture: plusDays(-40), montant: 750000000000, devise: 'FCFA', echeance: plusDays(900),
+      notes: 'Projet de construction d\'une raffinerie au Gabon pour améliorer les capacités de production et de raffinage local (capacité visée : 60 000 barils par jour).\nSite envisagé : zone portuaire de la côte atlantique. Objectifs : réduire la dépendance aux produits raffinés importés, maximiser la transformation locale, augmenter les recettes fiscales et créer des emplois qualifiés.\nMontage envisagé : dette structurée, equity stratégique et garanties d\'exportation ; levée de fonds auprès d\'investisseurs internationaux.' + NOTE,
+      journal: [jr(2, 'Proposition d\'accompagnement envoyée : cadrage, montage financier, levée de fonds.'), jr(9, 'Étude de marché terminée : débouchés régionaux confirmés.'),
+        jr(26, 'Atelier de cadrage avec le comité du projet : capacité cible fixée.'), jr(40, 'Dossier ouvert à la suite d\'un premier rendez-vous.')] };
+    st.dossiers.push(energie, oil);
+    function s(dos, titre, cat, statut, prio, who, deb, fin) {
+      st.sujets.push({ id: uid(), titre: titre, dossierId: dos.id, categorie: cat, statut: statut, priorite: prio, assigne: who, debut: plusDays(deb), echeance: plusDays(fin), notes: '' });
+    }
+    var A = 'Analyse / étude', F = 'Financement', J = 'Juridique et fiscal', R = 'Relation institutionnelle', C = 'Commercial', X = 'Autre', AD = 'Administratif';
+    s(energie, 'Cartographie des sites solaires et du potentiel hydroélectrique', A, 'Terminé', 'Normale', 'Amadou N.', -70, -40);
+    s(energie, 'Étude de faisabilité technico-économique', A, 'Terminé', 'Haute', 'Amadou N.', -45, -10);
+    s(energie, 'Négociation de l\'accord d\'achat d\'électricité (PPA)', J, 'En cours', 'Haute', 'Awa S.', -20, 35);
+    s(energie, 'Structuration du financement (dette + equity)', F, 'En cours', 'Haute', 'Awa S.', -15, 50);
+    s(energie, 'Garantie souveraine et soutien de l\'État', R, 'En attente', 'Normale', 'Chantal O.', 0, 60);
+    s(energie, 'Étude de raccordement et de réseau intelligent', A, 'À faire', 'Normale', 'Amadou N.', 60, 150);
+    s(energie, 'Appel d\'offres EPC (construction)', AD, 'À faire', 'Normale', 'Awa S.', 40, 120);
+    s(energie, 'Closing financier', F, 'À faire', 'Haute', 'Awa S.', 120, 180);
+    s(energie, 'Plan de transfert de compétences aux équipes locales', X, 'À faire', 'Basse', 'Chantal O.', 150, 300);
+    s(energie, 'Mise en service de la phase 1', X, 'À faire', 'Normale', 'Amadou N.', 300, 420);
+    s(oil, 'Cadrage du projet et objectifs de capacité', A, 'Terminé', 'Haute', 'Chantal O.', -40, -25);
+    s(oil, 'Étude de marché et débouchés régionaux', A, 'Terminé', 'Normale', 'Amadou N.', -30, -5);
+    s(oil, 'Étude de faisabilité technico-économique', A, 'En cours', 'Haute', 'Amadou N.', -20, 40);
+    s(oil, 'Choix du site et foncier (zone portuaire)', R, 'En cours', 'Normale', 'Chantal O.', -10, 45);
+    s(oil, 'Convention avec l\'État (régime fiscal et douanier)', R, 'En attente', 'Haute', 'Chantal O.', 0, 90);
+    s(oil, 'Étude d\'impact environnemental et social', A, 'À faire', 'Normale', 'Awa S.', 10, 110);
+    s(oil, 'Accord d\'approvisionnement en pétrole brut', C, 'À faire', 'Normale', 'Awa S.', 30, 120);
+    s(oil, 'Montage financier : dette structurée + equity stratégique', F, 'À faire', 'Haute', 'Awa S.', 30, 150);
+    s(oil, 'Garanties d\'exportation et agences de crédit', F, 'À faire', 'Normale', 'Awa S.', 60, 170);
+    s(oil, 'Présentation aux investisseurs et fonds souverains', F, 'À faire', 'Normale', 'Chantal O.', 100, 190);
+    s(oil, 'Appel d\'offres et sélection du constructeur (EPC)', C, 'À faire', 'Normale', 'Amadou N.', 120, 260);
+    s(oil, 'Closing financier et lancement des travaux', F, 'À faire', 'Haute', 'Awa S.', 260, 300);
+    s(oil, 'Construction de la raffinerie (phase 1)', X, 'À faire', 'Normale', 'Amadou N.', 300, 720);
+    s(oil, 'Formation et transfert de compétences', X, 'À faire', 'Basse', 'Chantal O.', 400, 780);
+    s(oil, 'Mise en service et montée en capacité', X, 'À faire', 'Haute', 'Amadou N.', 720, 900);
+    s(null || { id: '' }, 'Veille : mécanismes de garantie et financements verts en Afrique centrale', 'Veille', 'En cours', 'Basse', 'Amadou N.', -30, 30);
+    return st;
   }
+  function loadExamples() { demoData(state); save(); }
 
   /* ---------- Navigation ---------- */
   function setView(v) {
@@ -119,6 +142,7 @@
     if (ui.view === 'dashboard') renderDashboard();
     else if (ui.view === 'dossiers') renderDossiers();
     else if (ui.view === 'sujets') renderSujets();
+    else if (ui.view === 'planning') renderPlanning();
     else renderDonnees();
     if (ui.open) renderDrawer();
   }
@@ -143,7 +167,7 @@
     if (!state.dossiers.length && !state.sujets.length) {
       el.innerHTML = '<div class="head"><h1>Tableau de bord</h1></div>' + emptyBlock('Bienvenue dans votre espace de suivi',
         'Créez votre premier dossier (une mission, un client, une opération) puis ajoutez les sujets à traiter. Vous pouvez aussi charger quelques exemples fictifs pour découvrir l\'outil.',
-        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger des exemples</button></div>');
+        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
       return;
     }
     var actifs = state.dossiers.filter(active);
@@ -243,7 +267,7 @@
         '<button class="btn btn--line btn--sm" data-action="reset-d">Réinitialiser</button></div>';
     if (!state.dossiers.length) {
       el.innerHTML = html + emptyBlock('Aucun dossier pour le moment', 'Un dossier regroupe une mission, un client ou une opération, avec ses sujets à traiter et son journal de suivi.',
-        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger des exemples</button></div>');
+        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
       return bindSearch();
     }
     if (!list.length) { el.innerHTML = html + emptyBlock('Aucun résultat', 'Aucun dossier ne correspond à ces critères.', '<button class="btn btn--line" data-action="reset-d">Réinitialiser les filtres</button>'); return bindSearch(); }
@@ -304,7 +328,7 @@
         '<button class="btn btn--line btn--sm" data-action="reset-s">Réinitialiser</button></div>';
     if (!state.sujets.length) {
       el.innerHTML = html + emptyBlock('Aucun sujet pour le moment', 'Un sujet est un point à traiter : une analyse, une relance, une réunion, une veille. Il peut être rattaché à un dossier ou rester indépendant.',
-        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-sujet">Créer un sujet</button><button class="btn btn--line" data-action="examples">Charger des exemples</button></div>');
+        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-sujet">Créer un sujet</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
       return bindSearch();
     }
     if (!list.length) { el.innerHTML = html + emptyBlock('Aucun résultat', 'Aucun sujet ne correspond à ces critères.', '<button class="btn btn--line" data-action="reset-s">Réinitialiser les filtres</button>'); return bindSearch(); }
@@ -333,6 +357,103 @@
     bindSearch();
   }
 
+  /* --- Planning global (diagramme de Gantt) --- */
+  var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  var ZOOMS = { detail: { px: 5, label: 'Détail' }, standard: { px: 2.4, label: 'Standard' }, global: { px: 1, label: 'Vue globale' } };
+  function dnum(s) { return Math.round(new Date(s + 'T00:00:00').getTime() / 86400000); }
+  function addDays(s, n) { var d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+  function spanOf(s) {
+    var a = s.debut, b = s.echeance;
+    if (!a && !b) return null;
+    if (a && !b) b = addDays(a, 7);
+    if (!a && b) a = b;
+    if (b < a) { var t = a; a = b; b = t; }
+    return { a: a, b: b, milestone: !s.debut };
+  }
+  function dossierSpan(d) {
+    var a = d.ouverture || today(), b = d.echeance || addDays(a, 90);
+    if (b < a) b = addDays(a, 30);
+    return { a: a, b: b };
+  }
+  function renderPlanning() {
+    var el = $('#view-planning');
+    if (!state.dossiers.length) {
+      el.innerHTML = '<div class="head"><h1>Planning</h1></div>' + emptyBlock('Aucun dossier à planifier', 'Le planning affiche, sur une frise chronologique, tous les dossiers et leurs sujets dès qu\'ils ont des dates.',
+        '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
+      return;
+    }
+    var P = ui.plan, zoom = ZOOMS[P.zoom] || ZOOMS.standard, pxd = zoom.px;
+    var doss = state.dossiers.filter(function (d) { return (!P.dossier || d.id === P.dossier) && (P.closed || active(d)); });
+    var rows = [], lo = null, hi = null, undated = 0;
+    function bound(a, b) { var x = dnum(a), y = dnum(b); if (lo === null || x < lo) lo = x; if (hi === null || y > hi) hi = y; }
+    doss.forEach(function (d) {
+      var ds = dossierSpan(d); bound(ds.a, ds.b);
+      var ss = sujetsOf(d.id), done = ss.filter(function (s) { return s.statut === 'Terminé'; }).length;
+      rows.push({ kind: 'd', d: d, span: ds, pct: ss.length ? Math.round(done / ss.length * 100) : 0, n: ss.length });
+      if (P.sujets) {
+        ss.map(function (s) { return { s: s, sp: spanOf(s) }; }).filter(function (x) { if (!x.sp) { undated++; return false; } return true; })
+          .sort(function (x, y) { return x.sp.a < y.sp.a ? -1 : x.sp.a > y.sp.a ? 1 : 0; })
+          .forEach(function (x) { bound(x.sp.a, x.sp.b); rows.push({ kind: 's', s: x.s, span: x.sp }); });
+      }
+    });
+    var t = dnum(today());
+    if (lo === null) { lo = t; hi = t + 90; }
+    lo = Math.min(lo, t - 14); hi = Math.max(hi, t + 60);
+    var first = new Date(lo * 86400000); first = new Date(first.getFullYear(), first.getMonth(), 1);
+    var start = Math.round(new Date(first.getFullYear(), first.getMonth(), first.getDate()).getTime() / 86400000);
+    var endD = new Date(hi * 86400000); endD = new Date(endD.getFullYear(), endD.getMonth() + 1, 1);
+    var end = Math.round(endD.getTime() / 86400000);
+    var W = Math.round((end - start) * pxd);
+    function x(dn) { return Math.round((dn - start) * pxd); }
+
+    // En-tête : mois (et années)
+    var months = '', lines = '', years = '', cur = new Date(first), yearStart = x(start), yearLabel = cur.getFullYear();
+    while (Math.round(cur.getTime() / 86400000) < end) {
+      var ms = Math.round(cur.getTime() / 86400000), nx = new Date(cur.getFullYear(), cur.getMonth() + 1, 1), me = Math.round(nx.getTime() / 86400000);
+      var mw = Math.round((me - ms) * pxd);
+      months += '<span style="left:' + x(ms) + 'px;width:' + mw + 'px">' + (mw < 40 ? MOIS[cur.getMonth()].charAt(0).toUpperCase() : MOIS[cur.getMonth()]) + '</span>';
+      lines += '<i class="gl' + (cur.getMonth() === 0 ? ' gl--y' : '') + '" style="left:' + x(ms) + 'px"></i>';
+      if (cur.getMonth() === 0 || ms === start) {
+        var yEnd = Math.round(new Date(cur.getFullYear() + 1, 0, 1).getTime() / 86400000);
+        years += '<span style="left:' + x(ms) + 'px;width:' + Math.round((Math.min(yEnd, end) - ms) * pxd) + 'px">' + cur.getFullYear() + '</span>';
+      }
+      cur = nx;
+    }
+    var todayX = x(t);
+    var body = rows.map(function (r) {
+      var a = x(dnum(r.span.a)), w = Math.max(Math.round((dnum(r.span.b) - dnum(r.span.a) + 1) * pxd), 6);
+      if (r.kind === 'd') {
+        var d = r.d;
+        return '<div class="gr gr--d"><div class="gr__l" data-action="open" data-id="' + d.id + '" title="Ouvrir la fiche"><strong>' + esc(d.titre) + '</strong><small>' + esc(d.ref) + ' · ' + esc(d.client) + '</small></div>' +
+          '<div class="gr__t" style="width:' + W + 'px"><div class="gbar gbar--d b-' + slug(d.statut) + '" style="left:' + a + 'px;width:' + w + 'px" data-action="open" data-id="' + d.id + '" title="' + esc(d.titre + ' — ' + fmtDate(r.span.a) + ' → ' + fmtDate(r.span.b) + ' (' + d.statut + ')') + '">' +
+          '<i style="width:' + r.pct + '%"></i><span>' + (w > 70 ? esc(d.statut) + ' · ' + r.pct + ' %' : '') + '</span></div></div></div>';
+      }
+      var s = r.s, late = s.statut !== 'Terminé' && s.echeance && daysTo(s.echeance) < 0;
+      var tip = s.titre + ' — ' + (s.debut ? fmtDate(s.debut) + ' → ' : '') + fmtDate(s.echeance) + ' (' + s.statut + (s.assigne ? ', ' + s.assigne : '') + ')';
+      return '<div class="gr"><div class="gr__l gr__l--s" data-action="edit-sujet" data-id="' + s.id + '" title="Modifier le sujet"><span class="' + (s.statut === 'Terminé' ? 'done' : '') + '">' + esc(s.titre) + '</span><small>' + esc(s.assigne || '—') + '</small></div>' +
+        '<div class="gr__t" style="width:' + W + 'px">' + (r.span.milestone
+          ? '<div class="gms ss-' + slug(s.statut) + (late ? ' is-late' : '') + '" style="left:' + (a + Math.round(pxd / 2) - 7) + 'px" data-action="edit-sujet" data-id="' + s.id + '" title="' + esc(tip) + '"></div>'
+          : '<div class="gbar ss-' + slug(s.statut) + (late ? ' is-late' : '') + '" style="left:' + a + 'px;width:' + w + 'px" data-action="edit-sujet" data-id="' + s.id + '" title="' + esc(tip) + '"><span>' + (w > 90 ? esc(s.statut) : '') + '</span></div>') + '</div></div>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="head"><h1>Planning global</h1><div class="head__r">' +
+        '<div class="seg">' + Object.keys(ZOOMS).map(function (k) { return '<button data-action="pzoom" data-zoom="' + k + '" class="' + (P.zoom === k ? 'is-on' : '') + '">' + ZOOMS[k].label + '</button>'; }).join('') + '</div></div></div>' +
+      '<div class="filters">' +
+        '<select data-filter="p:dossier" aria-label="Dossier"><option value="">Tous les dossiers</option>' + state.dossiers.map(function (d) { return '<option value="' + d.id + '"' + (P.dossier === d.id ? ' selected' : '') + '>' + esc(d.ref + ' — ' + d.titre) + '</option>'; }).join('') + '</select>' +
+        '<label class="chk"><input type="checkbox" data-pflag="sujets"' + (P.sujets ? ' checked' : '') + '> Afficher les sujets</label>' +
+        '<label class="chk"><input type="checkbox" data-pflag="closed"' + (P.closed ? ' checked' : '') + '> Dossiers clôturés</label>' +
+        '<button class="btn btn--line btn--sm" data-action="ptoday">Aller à aujourd\'hui</button></div>' +
+      '<div class="legend"><span><i class="lg lg--d"></i>Dossier (remplissage = sujets terminés)</span><span><i class="lg ss-a-faire"></i>À faire</span><span><i class="lg ss-en-cours"></i>En cours</span><span><i class="lg ss-en-attente"></i>En attente</span><span><i class="lg ss-termine"></i>Terminé</span><span><i class="lg lg--late"></i>En retard</span><span><i class="lg lg--ms"></i>Jalon (échéance seule)</span><span><i class="lg lg--today"></i>Aujourd\'hui</span></div>' +
+      (rows.length ? '<div class="gantt" id="gantt"><div class="gantt__in" style="--w:' + W + 'px">' +
+        '<div class="gh"><div class="gr__l gh__l">Dossiers et sujets</div><div class="gr__t gh__t" style="width:' + W + 'px"><i class="gtoday gtoday--h" style="left:' + todayX + 'px" title="Aujourd\'hui"></i><div class="gh__y">' + years + '</div><div class="gh__m">' + months + '</div></div></div>' +
+        '<div class="gbody">' + body + '<div class="glines" style="left:var(--lw);width:' + W + 'px">' + lines + '<i class="gtoday" style="left:' + todayX + 'px"></i></div></div>' +
+      '</div></div>' : emptyBlock('Rien à afficher', 'Aucun dossier ne correspond à ces filtres.', ''));
+    if (undated) el.insertAdjacentHTML('beforeend', '<p class="count">' + undated + ' sujet(s) sans date n\'apparaissent pas dans le planning : ajoutez un début et/ou une échéance.</p>');
+    var g = $('#gantt');
+    if (g) { if (P.scrollTo === 'today' || P.scrollTo == null) g.scrollLeft = Math.max(0, todayX - g.clientWidth / 3); P.scrollTo = null; }
+  }
+
   /* --- Données --- */
   function renderDonnees() {
     $('#view-donnees').innerHTML =
@@ -350,7 +471,7 @@
           '<button class="btn btn--line" data-action="export-csv-s">Sujets (CSV)</button></div></section>' +
       '</div>' +
       '<section class="card"><h2>Contenu actuel</h2><p>' + state.dossiers.length + ' dossier(s) · ' + state.sujets.length + ' sujet(s).</p><div class="row">' +
-        '<button class="btn btn--line" data-action="examples">Ajouter des exemples fictifs</button>' +
+        '<button class="btn btn--line" data-action="examples">Ajouter les dossiers de démonstration</button>' +
         '<button class="btn btn--danger" data-action="wipe">Tout effacer</button></div></section>';
   }
 
@@ -418,8 +539,8 @@
     var s = id ? state.sujets.filter(function (x) { return x.id === id; })[0] : null;
     $('#dlg-sujet-title').textContent = s ? 'Modifier le sujet' : 'Nouveau sujet';
     fS.dossierId.innerHTML = '<option value="">— Aucun (sujet indépendant) —</option>' + state.dossiers.map(function (d) { return '<option value="' + d.id + '">' + esc(d.ref + ' — ' + d.titre) + '</option>'; }).join('');
-    var base = s || { id: '', titre: '', dossierId: dossierId || '', categorie: CATS[0], statut: 'À faire', priorite: 'Normale', assigne: '', echeance: '', notes: '' };
-    ['id', 'titre', 'dossierId', 'categorie', 'statut', 'priorite', 'assigne', 'echeance', 'notes'].forEach(function (k) { fS[k].value = base[k] == null ? '' : base[k]; });
+    var base = s || { id: '', titre: '', dossierId: dossierId || '', categorie: CATS[0], statut: 'À faire', priorite: 'Normale', assigne: '', debut: '', echeance: '', notes: '' };
+    ['id', 'titre', 'dossierId', 'categorie', 'statut', 'priorite', 'assigne', 'debut', 'echeance', 'notes'].forEach(function (k) { fS[k].value = base[k] == null ? '' : base[k]; });
     $('#dlg-sujet').showModal(); fS.titre.focus();
   }
 
@@ -442,7 +563,8 @@
     if (!titre) { $('#err-sujet').textContent = 'Le titre du sujet est obligatoire.'; return; }
     var id = fS.id.value, s = id ? state.sujets.filter(function (x) { return x.id === id; })[0] : null, isNew = !s;
     if (!s) { s = { id: uid() }; state.sujets.push(s); }
-    ['titre', 'dossierId', 'categorie', 'statut', 'priorite', 'assigne', 'echeance', 'notes'].forEach(function (k) { s[k] = fS[k].value.trim(); });
+    ['titre', 'dossierId', 'categorie', 'statut', 'priorite', 'assigne', 'debut', 'echeance', 'notes'].forEach(function (k) { s[k] = fS[k].value.trim(); });
+    if (s.debut && s.echeance && s.debut > s.echeance) { var tmp = s.debut; s.debut = s.echeance; s.echeance = tmp; }
     var d = dossierById(s.dossierId); if (d && isNew) log(d, 'Sujet ajouté : ' + s.titre);
     save(); $('#dlg-sujet').close(); toast(isNew ? 'Sujet créé' : 'Sujet mis à jour'); render();
   });
@@ -473,6 +595,8 @@
       case 'close-dlg': t.closest('dialog').close(); break;
       case 'open': openDrawer(id); break;
       case 'close-drawer': closeDrawer(); break;
+      case 'pzoom': ui.plan.zoom = t.dataset.zoom; ui.plan.scrollTo = 'today'; render(); break;
+      case 'ptoday': ui.plan.scrollTo = 'today'; render(); break;
       case 'dmode': ui.dmode = t.dataset.mode; render(); break;
       case 'smode': ui.smode = t.dataset.mode; render(); break;
       case 'reset-d': ui.dq = ''; ui.df = { statut: '', secteur: '', resp: '', prio: '' }; render(); break;
@@ -486,7 +610,7 @@
           state.dossiers = state.dossiers.filter(function (x) { return x.id !== id; });
           save(); closeDrawer(); render(); toast('Dossier supprimé');
         } break;
-      case 'examples': loadExamples(); toast('Exemples fictifs ajoutés'); render(); break;
+      case 'examples': loadExamples(); toast('Dossiers de démonstration ajoutés'); render(); break;
       case 'export-json': download('africa-strategy-gestion-' + today() + '.json', JSON.stringify(state, null, 2), 'application/json'); break;
       case 'import-json': $('#file-import').click(); break;
       case 'export-csv-d': exportCsv('dossiers'); break;
@@ -508,8 +632,10 @@
     var t = e.target;
     if (t.dataset.filter) {
       var p = t.dataset.filter.split(':');
+      if (p[0] === 'p') { ui.plan[p[1]] = t.value; ui.plan.scrollTo = 'today'; render(); return; }
       (p[0] === 'd' ? ui.df : ui.sf)[p[1]] = t.value; render(); return;
     }
+    if (t.dataset.pflag) { ui.plan[t.dataset.pflag] = t.checked; render(); return; }
     if (t.dataset.action === 'toggle-s') { var s = sujetById(t.dataset.id); if (s) { setSujetStatut(s, t.checked ? 'Terminé' : 'À faire'); save(); render(); } }
     if (t.dataset.action === 'move-s') { var s2 = sujetById(t.dataset.id); if (s2) { setSujetStatut(s2, t.value); save(); render(); } }
     if (t.dataset.action === 'move-d') { var d = dossierById(t.dataset.id); if (d) { setDossierStatut(d, t.value); save(); render(); } }
@@ -559,8 +685,8 @@
       head = ['Référence', 'Intitulé', 'Client', 'Type de client', 'Pays', 'Secteur', 'Service', 'Statut', 'Priorité', 'Responsable', 'Ouverture', 'Échéance', 'Montant', 'Devise', 'Notes'];
       rows = state.dossiers.map(function (d) { return [d.ref, d.titre, d.client, d.typeClient, d.pays, d.secteur, d.service, d.statut, d.priorite, d.responsable, d.ouverture, d.echeance, d.montant, d.devise, d.notes]; });
     } else {
-      head = ['Sujet', 'Dossier', 'Catégorie', 'Statut', 'Priorité', 'Assigné à', 'Échéance', 'Notes'];
-      rows = state.sujets.map(function (s) { var d = dossierById(s.dossierId); return [s.titre, d ? d.ref : '', s.categorie, s.statut, s.priorite, s.assigne, s.echeance, s.notes]; });
+      head = ['Sujet', 'Dossier', 'Catégorie', 'Statut', 'Priorité', 'Assigné à', 'Début', 'Échéance', 'Notes'];
+      rows = state.sujets.map(function (s) { var d = dossierById(s.dossierId); return [s.titre, d ? d.ref : '', s.categorie, s.statut, s.priorite, s.assigne, s.debut, s.echeance, s.notes]; });
     }
     var csv = '﻿' + [head].concat(rows).map(function (r) { return r.map(csvCell).join(';'); }).join('\r\n');
     download('africa-strategy-' + kind + '-' + today() + '.csv', csv, 'text/csv');
@@ -581,5 +707,7 @@
 
   /* ---------- Démarrage ---------- */
   var h = location.hash.replace('#', '');
-  setView(['dashboard', 'dossiers', 'sujets', 'donnees'].indexOf(h) > -1 ? h : 'dashboard');
+  var VUES = ['dashboard', 'dossiers', 'sujets', 'planning', 'donnees'];
+  setView(VUES.indexOf(h) > -1 ? h : 'dashboard');
+  window.addEventListener('hashchange', function () { var v = location.hash.replace('#', ''); if (VUES.indexOf(v) > -1 && v !== ui.view) setView(v); });
 })();

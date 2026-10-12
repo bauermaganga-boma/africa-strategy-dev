@@ -538,3 +538,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .hero__strip-inner { gap: .35rem .6rem; font-size: .62rem; letter-spacing: .08em; padding: 1rem 0; flex-wrap: nowrap; }
   .hero__strip i { width: 5px; height: 5px; }
 }
+.btn--outline { border-color: rgba(243, 200, 163, .6); color: var(--gold-2); }
+.btn--outline:hover { background: var(--gold-2); color: var(--choco); }
+.btn--tool::before { content: ""; width: 16px; height: 16px; margin-right: .55rem; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E%3C/svg%3E") center/contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E%3C/svg%3E") center/contain no-repeat; }
+.hero__actions .btn--tool { display: inline-flex; align-items: center; }
+@media (max-width: 1080px) { .nav { gap: 1.2rem; } }
+.nav__tool { background: rgba(36, 22, 15, .55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); color: var(--gold-2); }

@@ -24,6 +24,7 @@
       <button data-view="dashboard" class="is-active">Tableau de bord</button>
       <button data-view="dossiers">Dossiers <i id="n-dossiers">0</i></button>
       <button data-view="sujets">Sujets <i id="n-sujets">0</i></button>
+      <button data-view="planning">Planning</button>
       <button data-view="donnees">Données</button>
     </nav>
     <div class="bar__actions">
@@ -37,6 +38,7 @@
   <section id="view-dashboard" class="view"></section>
   <section id="view-dossiers" class="view" hidden></section>
   <section id="view-sujets" class="view" hidden></section>
+  <section id="view-planning" class="view" hidden></section>
   <section id="view-donnees" class="view" hidden></section>
 </main>
 
@@ -90,7 +92,8 @@
       <label>Statut<select name="statut"></select></label>
       <label>Priorité<select name="priorite"></select></label>
       <label>Assigné à<input name="assigne" list="dl-resp" placeholder="Nom"></label>
-      <label>Échéance<input type="date" name="echeance"></label>
+      <label>Début<input type="date" name="debut"></label>
+      <label>Échéance / fin<input type="date" name="echeance"></label>
       <label class="full">Notes<textarea name="notes" rows="3"></textarea></label>
     </div>
     <footer class="dlg__foot">
