@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var KEY = 'africa-strategy-gestion-v1';
+  var KEY = 'africa-strategy-gestion-v2';
 
   var SECTEURS = ['Infrastructures publiques', 'Pétrole et gaz', 'Immobilier et hôtellerie', 'Agriculture et élevage', 'Énergie', 'Santé',
     'Mines', 'Technologie et data centers', 'Environnement', 'Médias et communication', 'Transports', 'Éducation, industrie et autres'];
@@ -20,7 +20,7 @@
 
   var state = load();
   var ui = { view: 'dashboard', dq: '', df: { statut: '', secteur: '', resp: '', prio: '' }, dmode: 'liste',
-    sq: '', sf: { statut: '', dossier: '', resp: '', cat: '' }, smode: 'kanban', open: null,
+    sq: '', sf: { statut: '', dossier: '', resp: '', cat: '' }, smode: 'kanban', open: null, fopen: false, addmenu: false,
     plan: { zoom: 'standard', dossier: '', sujets: true, closed: false, scrollTo: 'today' } };
 
   /* ---------- Utilitaires ---------- */
@@ -72,35 +72,67 @@
   }
   function log(d, text) { d.journal = d.journal || []; d.journal.unshift({ d: new Date().toISOString(), t: text }); }
 
-    /* ---------- Données de démonstration (fictives) ---------- */
+      /* ---------- Dossiers préchargés (Santé, Eau et Énergie : courriers réels ; Oil and gas : fictif) ---------- */
   function jr(daysAgo, text) { var d = new Date(); d.setDate(d.getDate() - daysAgo); d.setHours(10, 0, 0, 0); return { d: d.toISOString(), t: text }; }
+  function jrAt(day, text) { return { d: day + 'T10:00:00.000Z', t: text }; }
   function demoData(st) {
-    var NOTE = ' Données fictives, pour démonstration.';
-    var energie = { id: uid(), ref: nextRef(st), titre: 'Énergie', client: 'Compagnie nationale d\'électricité (fictive)', typeClient: 'Institution publique', pays: 'Gabon', secteur: 'Énergie',
-      service: SERVICES[1], statut: 'En cours', priorite: 'Haute', responsable: 'Awa S.', ouverture: plusDays(-75), montant: 180000000000, devise: 'FCFA', echeance: plusDays(420),
-      notes: 'Programme d\'électrification : centrale solaire de 120 MW, ligne de raccordement et réseau intelligent.\nFinancement mixte : bailleurs internationaux et investisseurs institutionnels, adossé à un accord d\'achat d\'électricité (PPA) et à une garantie souveraine.\nObjectifs : accès élargi à l\'électricité, baisse des coûts de production, transition énergétique maîtrisée.' + NOTE,
-      journal: [jr(3, 'Réunion avec la direction financière : version 2 du modèle financier validée.'), jr(18, 'Premier échange sur les termes du PPA (tarif, durée, clauses de révision).'),
-        jr(45, 'Étude de faisabilité technico-économique remise au client.'), jr(75, 'Dossier ouvert — mandat de conseil signé.')] };
+    var DIA = 'Seydina Ababacar Dia';
+    var sante = { id: uid(), ref: nextRef(st), titre: 'Santé', client: 'Ministère de la Santé et des Affaires Sociales (Gabon)', typeClient: 'État / collectivité', pays: 'Gabon', secteur: 'Santé',
+      service: SERVICES[1], statut: 'Proposition', priorite: 'Haute', responsable: DIA, ouverture: '2026-03-30', montant: '', devise: 'FCFA', echeance: '2026-12-31',
+      notes: 'Proposition d\'accompagnement stratégique, financier et technologique pour moderniser le système de santé gabonais et faire du Gabon la référence santé d\'Afrique centrale.\n' +
+        'Offre en 4 volets : infrastructures hospitalières ; équipements médicaux ; santé numérique ; prévention et santé publique.\n' +
+        'Modèle : apporteur d\'affaires, sans coût préalable pour l\'État. Instruments : financements multilatéraux, crédits export, PPP hospitaliers, leasing d\'équipements, obligations sociales, financements sur résultats.\n' +
+        'Courrier envoyé le 30/03/2026 (réf. ASDT/2026/MSAS-GAB/001).\n' +
+        'Réponse de la Ministre le 26/05/2026 (n° 001448/MS/SG/DGPEP, réf. ASDT/202/MSAS-GAB/002) : intérêt confirmé ; échanges possibles sur la structuration des financements, l\'optimisation des mécanismes, la transformation numérique et la modernisation financière ; prendre l\'attache de la DGPEP pour définir la faisabilité d\'une rencontre.\n' +
+        'Échéance du dossier : date indicative, à ajuster. Les dates des prochains sujets sont indicatives.',
+      journal: [jrAt('2026-05-26', 'Réponse de la Ministre (n° 001448) : intérêt confirmé, contact à prendre avec la DGPEP pour organiser la rencontre.'),
+        jrAt('2026-03-30', 'Lettre de proposition envoyée au Ministère (réf. ASDT/2026/MSAS-GAB/001).'), jrAt('2026-03-30', 'Dossier ouvert.')] };
+    var eau = { id: uid(), ref: nextRef(st), titre: 'Eau et Énergie', client: 'Ministère de l\'Accès universel à l\'Eau et à l\'Énergie (Gabon)', typeClient: 'État / collectivité', pays: 'Gabon', secteur: 'Énergie',
+      service: SERVICES[1], statut: 'Proposition', priorite: 'Haute', responsable: DIA, ouverture: '2026-03-30', montant: '', devise: 'FCFA', echeance: '2026-12-31',
+      notes: 'Proposition d\'accompagnement stratégique et financier pour moderniser les secteurs de l\'électricité et de l\'eau au Gabon.\n' +
+        'Électricité : modernisation des centrales hydroélectriques, solaire et hybride, réseaux intelligents, compteurs intelligents, lignes HT/MT, stockage par batteries, nouveaux barrages, éclairage public solaire.\n' +
+        'Eau : stations de traitement, nouvelles usines, réservoirs, réhabilitation des conduites, réduction des pertes, digitalisation, extension périurbaine et rurale.\n' +
+        'Modèle : apporteur d\'affaires, sans coût préalable pour l\'État ; présélection des entreprises et mise en concurrence encadrée ; montages PPP, project finance, marchés publics, leasing, obligations structurées ; formation et transfert de compétences.\n' +
+        'Courrier envoyé le 30/03/2026 (réf. ASDT/2026/MAUEE-GAB/001).\n' +
+        'Réponse du Ministre le 26/05/2026 (n° 00735, réf. ASDT/2026/MAUEE-GAB/002) : les services techniques sont disponibles pour une séance de travail ; prendre contact avec le Directeur général de l\'Eau et le Directeur général de l\'Énergie (coordonnées dans le courrier).\n' +
+        'Échéance du dossier : date indicative, à ajuster. Les dates des prochains sujets sont indicatives.',
+      journal: [jrAt('2026-05-26', 'Réponse du Ministre (n° 00735) : séance de travail proposée avec les directions techniques ; contacts DG Eau et DG Énergie communiqués.'),
+        jrAt('2026-03-30', 'Lettre de proposition envoyée au Ministère (réf. ASDT/2026/MAUEE-GAB/001).'), jrAt('2026-03-30', 'Dossier ouvert.')] };
     var oil = { id: uid(), ref: nextRef(st), titre: 'Oil and gas', client: 'Société gabonaise de raffinage (fictive)', typeClient: 'Entreprise privée', pays: 'Gabon', secteur: 'Pétrole et gaz',
       service: SERVICES[1], statut: 'Proposition', priorite: 'Haute', responsable: 'Chantal O.', ouverture: plusDays(-40), montant: 750000000000, devise: 'FCFA', echeance: plusDays(900),
-      notes: 'Projet de construction d\'une raffinerie au Gabon pour améliorer les capacités de production et de raffinage local (capacité visée : 60 000 barils par jour).\nSite envisagé : zone portuaire de la côte atlantique. Objectifs : réduire la dépendance aux produits raffinés importés, maximiser la transformation locale, augmenter les recettes fiscales et créer des emplois qualifiés.\nMontage envisagé : dette structurée, equity stratégique et garanties d\'exportation ; levée de fonds auprès d\'investisseurs internationaux.' + NOTE,
+      notes: 'DOSSIER FICTIF, pour démonstration.\nProjet de construction d\'une raffinerie au Gabon pour améliorer les capacités de production et de raffinage local (capacité visée : 60 000 barils par jour).\nSite envisagé : zone portuaire de la côte atlantique. Objectifs : réduire la dépendance aux produits raffinés importés, maximiser la transformation locale, augmenter les recettes fiscales et créer des emplois qualifiés.\nMontage envisagé : dette structurée, equity stratégique et garanties d\'exportation ; levée de fonds auprès d\'investisseurs internationaux.',
       journal: [jr(2, 'Proposition d\'accompagnement envoyée : cadrage, montage financier, levée de fonds.'), jr(9, 'Étude de marché terminée : débouchés régionaux confirmés.'),
         jr(26, 'Atelier de cadrage avec le comité du projet : capacité cible fixée.'), jr(40, 'Dossier ouvert à la suite d\'un premier rendez-vous.')] };
-    st.dossiers.push(energie, oil);
+    st.dossiers.push(sante, eau, oil);
     function s(dos, titre, cat, statut, prio, who, deb, fin) {
-      st.sujets.push({ id: uid(), titre: titre, dossierId: dos.id, categorie: cat, statut: statut, priorite: prio, assigne: who, debut: plusDays(deb), echeance: plusDays(fin), notes: '' });
+      var rel = typeof deb === 'number';
+      st.sujets.push({ id: uid(), titre: titre, dossierId: dos.id, categorie: cat, statut: statut, priorite: prio, assigne: who, debut: rel ? plusDays(deb) : deb, echeance: rel ? plusDays(fin) : fin, notes: '' });
     }
-    var A = 'Analyse / étude', F = 'Financement', J = 'Juridique et fiscal', R = 'Relation institutionnelle', C = 'Commercial', X = 'Autre', AD = 'Administratif';
-    s(energie, 'Cartographie des sites solaires et du potentiel hydroélectrique', A, 'Terminé', 'Normale', 'Amadou N.', -70, -40);
-    s(energie, 'Étude de faisabilité technico-économique', A, 'Terminé', 'Haute', 'Amadou N.', -45, -10);
-    s(energie, 'Négociation de l\'accord d\'achat d\'électricité (PPA)', J, 'En cours', 'Haute', 'Awa S.', -20, 35);
-    s(energie, 'Structuration du financement (dette + equity)', F, 'En cours', 'Haute', 'Awa S.', -15, 50);
-    s(energie, 'Garantie souveraine et soutien de l\'État', R, 'En attente', 'Normale', 'Chantal O.', 0, 60);
-    s(energie, 'Étude de raccordement et de réseau intelligent', A, 'À faire', 'Normale', 'Amadou N.', 60, 150);
-    s(energie, 'Appel d\'offres EPC (construction)', AD, 'À faire', 'Normale', 'Awa S.', 40, 120);
-    s(energie, 'Closing financier', F, 'À faire', 'Haute', 'Awa S.', 120, 180);
-    s(energie, 'Plan de transfert de compétences aux équipes locales', X, 'À faire', 'Basse', 'Chantal O.', 150, 300);
-    s(energie, 'Mise en service de la phase 1', X, 'À faire', 'Normale', 'Amadou N.', 300, 420);
+    var A = 'Analyse / étude', F = 'Financement', R = 'Relation institutionnelle', C = 'Commercial', X = 'Autre', J = 'Juridique et fiscal';
+    var TBD = 'À définir';
+    // Santé
+    s(sante, 'Élaboration du plan structuré d\'intervention et de financement (4 volets)', A, 'Terminé', 'Haute', DIA, '2026-03-02', '2026-03-30');
+    s(sante, 'Envoi de la lettre de proposition au Ministère (réf. MSAS-GAB/001)', R, 'Terminé', 'Haute', DIA, '2026-03-30', '2026-03-30');
+    s(sante, 'Réception de la réponse du Ministère (courrier n° 001448 du 26 mai 2026)', R, 'Terminé', 'Normale', DIA, '2026-05-26', '2026-05-26');
+    s(sante, 'Se rapprocher de la DGPEP pour définir la faisabilité de la rencontre', R, 'À faire', 'Haute', DIA, 0, 10);
+    s(sante, 'Préparer la séance de travail : financements, mécanismes, transformation numérique, modernisation financière', A, 'À faire', 'Haute', DIA, 5, 25);
+    s(sante, 'Présenter l\'offre au Ministère et recueillir ses priorités', R, 'À faire', 'Haute', DIA, 25, 45);
+    s(sante, 'Pré-sélectionner les partenaires techniques et financiers (équipements, santé numérique, hôpitaux)', C, 'À faire', 'Normale', TBD, 10, 60);
+    s(sante, 'Définir les montages de financement (PPP hospitaliers, crédit export, leasing, financement sur résultats)', F, 'À faire', 'Normale', TBD, 25, 90);
+    s(sante, 'Cadrer le volet santé numérique (dossier patient, télémédecine, data center)', A, 'À faire', 'Normale', TBD, 45, 100);
+    s(sante, 'Plan de formation et de transfert de compétences', X, 'À faire', 'Basse', TBD, 90, 150);
+    // Eau et Énergie
+    s(eau, 'Élaboration du plan structuré d\'intervention et de financement (électricité et eau)', A, 'Terminé', 'Haute', DIA, '2026-03-02', '2026-03-30');
+    s(eau, 'Envoi de la lettre de proposition au Ministère (réf. MAUEE-GAB/001)', R, 'Terminé', 'Haute', DIA, '2026-03-30', '2026-03-30');
+    s(eau, 'Réception de la réponse du Ministre (courrier n° 00735 du 26 mai 2026)', R, 'Terminé', 'Normale', DIA, '2026-05-26', '2026-05-26');
+    s(eau, 'Prendre contact avec le Directeur général de l\'Eau', R, 'À faire', 'Haute', DIA, 0, 10);
+    s(eau, 'Prendre contact avec le Directeur général de l\'Énergie', R, 'À faire', 'Haute', DIA, 0, 10);
+    s(eau, 'Séance de travail avec les directions techniques : présentation du plan d\'intervention et de financement', R, 'À faire', 'Haute', DIA, 10, 35);
+    s(eau, 'Présélection des entreprises partenaires et mise en concurrence encadrée', C, 'À faire', 'Normale', TBD, 30, 90);
+    s(eau, 'Choix des montages juridiques et financiers (PPP, marchés publics, leasing, obligations structurées)', J, 'À faire', 'Normale', TBD, 45, 100);
+    s(eau, 'Mobilisation des financements (Europe, Moyen-Orient, Asie, réseau sous-régional)', F, 'À faire', 'Normale', TBD, 60, 150);
+    s(eau, 'Volet formation et transfert de compétences', X, 'À faire', 'Basse', TBD, 120, 240);
+    // Oil and gas (fictif)
     s(oil, 'Cadrage du projet et objectifs de capacité', A, 'Terminé', 'Haute', 'Chantal O.', -40, -25);
     s(oil, 'Étude de marché et débouchés régionaux', A, 'Terminé', 'Normale', 'Amadou N.', -30, -5);
     s(oil, 'Étude de faisabilité technico-économique', A, 'En cours', 'Haute', 'Amadou N.', -20, 40);
@@ -116,13 +148,14 @@
     s(oil, 'Construction de la raffinerie (phase 1)', X, 'À faire', 'Normale', 'Amadou N.', 300, 720);
     s(oil, 'Formation et transfert de compétences', X, 'À faire', 'Basse', 'Chantal O.', 400, 780);
     s(oil, 'Mise en service et montée en capacité', X, 'À faire', 'Haute', 'Amadou N.', 720, 900);
-    s(null || { id: '' }, 'Veille : mécanismes de garantie et financements verts en Afrique centrale', 'Veille', 'En cours', 'Basse', 'Amadou N.', -30, 30);
     return st;
   }
   function loadExamples() { demoData(state); save(); }
 
   /* ---------- Navigation ---------- */
+  function hideAdd() { ui.addmenu = false; var m = $('#addmenu'); if (m) m.hidden = true; }
   function setView(v) {
+    hideAdd();
     ui.view = v;
     $$('.view').forEach(function (s) { s.hidden = s.id !== 'view-' + v; });
     $$('#tabs button').forEach(function (b) { b.classList.toggle('is-active', b.dataset.view === v); });
@@ -243,6 +276,7 @@
       return true;
     });
   }
+  function nActive(f) { var n = 0; Object.keys(f).forEach(function (k) { if (f[k]) n++; }); return n ? ' (' + n + ')' : ''; }
   function respList() {
     var p = {}; state.dossiers.forEach(function (d) { if (d.responsable) p[d.responsable] = 1; });
     return Object.keys(p).sort();
@@ -258,13 +292,14 @@
     var html = '<div class="head"><h1>Dossiers</h1><div class="seg">' +
       '<button data-action="dmode" data-mode="liste" class="' + (ui.dmode === 'liste' ? 'is-on' : '') + '">Liste</button>' +
       '<button data-action="dmode" data-mode="pipeline" class="' + (ui.dmode === 'pipeline' ? 'is-on' : '') + '">Pipeline</button></div></div>' +
-      '<div class="filters">' +
-        '<input type="search" id="dq" placeholder="Rechercher un dossier, un client, une référence…" value="' + esc(ui.dq) + '" aria-label="Rechercher">' +
+      '<div class="filters' + (ui.fopen ? ' is-open' : '') + '">' +
+        '<input type="search" id="dq" placeholder="Rechercher un dossier, un client…" value="' + esc(ui.dq) + '" aria-label="Rechercher">' +
+        '<button type="button" class="btn btn--line btn--sm filters__toggle" data-action="toggle-filters">Filtres' + nActive(ui.df) + '</button><div class="filters__more">' +
         '<select data-filter="d:statut" aria-label="Statut">' + opts(STATUTS_D, ui.df.statut, 'Tous les statuts') + '</select>' +
         '<select data-filter="d:secteur" aria-label="Secteur">' + opts(SECTEURS, ui.df.secteur, 'Tous les secteurs') + '</select>' +
         '<select data-filter="d:resp" aria-label="Responsable">' + opts(respList(), ui.df.resp, 'Tous les responsables') + '</select>' +
         '<select data-filter="d:prio" aria-label="Priorité">' + opts(PRIO, ui.df.prio, 'Toutes priorités') + '</select>' +
-        '<button class="btn btn--line btn--sm" data-action="reset-d">Réinitialiser</button></div>';
+        '<button class="btn btn--line btn--sm" data-action="reset-d">Réinitialiser</button></div></div>';
     if (!state.dossiers.length) {
       el.innerHTML = html + emptyBlock('Aucun dossier pour le moment', 'Un dossier regroupe une mission, un client ou une opération, avec ses sujets à traiter et son journal de suivi.',
         '<div class="empty__actions"><button class="btn btn--brown" data-action="new-dossier">Créer un dossier</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
@@ -273,13 +308,16 @@
     if (!list.length) { el.innerHTML = html + emptyBlock('Aucun résultat', 'Aucun dossier ne correspond à ces critères.', '<button class="btn btn--line" data-action="reset-d">Réinitialiser les filtres</button>'); return bindSearch(); }
 
     if (ui.dmode === 'liste') {
-      html += '<div class="tablewrap"><table class="tbl"><thead><tr><th>Référence</th><th>Dossier</th><th>Secteur</th><th>Statut</th><th>Priorité</th><th>Responsable</th><th class="r">Montant</th><th>Échéance</th><th>Sujets</th></tr></thead><tbody>' +
+      html += '<div class="tablewrap desk"><table class="tbl"><thead><tr><th>Référence</th><th>Dossier</th><th>Secteur</th><th>Statut</th><th>Priorité</th><th>Responsable</th><th class="r">Montant</th><th>Échéance</th><th>Sujets</th></tr></thead><tbody>' +
         list.map(function (d) {
           return '<tr data-action="open" data-id="' + d.id + '" tabindex="0"><td class="mono">' + esc(d.ref) + '</td>' +
             '<td><strong>' + esc(d.titre) + '</strong><small>' + esc(d.client) + (d.pays ? ' · ' + esc(d.pays) : '') + '</small></td>' +
             '<td>' + esc(d.secteur || '—') + '</td><td>' + badge(d.statut, 'st-' + slug(d.statut)) + '</td><td>' + badge(d.priorite, 'p-' + slug(d.priorite)) + '</td>' +
             '<td>' + esc(d.responsable || '—') + '</td><td class="r">' + fmtMoney(d.montant, d.devise) + '</td><td>' + dueTag(d.echeance, !active(d)) + '</td><td class="nowrap">' + progress(d) + '</td></tr>';
-        }).join('') + '</tbody></table></div><p class="count">' + list.length + ' dossier' + (list.length > 1 ? 's' : '') + ' affiché' + (list.length > 1 ? 's' : '') + '</p>';
+        }).join('') + '</tbody></table></div><div class="mcards">' + list.map(function (d) {
+          return '<article class="mcard" data-action="open" data-id="' + d.id + '"><div class="mcard__top"><span class="mono">' + esc(d.ref) + '</span>' + badge(d.statut, 'st-' + slug(d.statut)) + '</div>' +
+            '<h3>' + esc(d.titre) + '</h3><p>' + esc(d.client) + '</p><div class="mcard__row">' + badge(d.priorite, 'p-' + slug(d.priorite)) + dueTag(d.echeance, !active(d)) + '<span class="nowrap">' + progress(d) + '</span></div></article>';
+        }).join('') + '</div><p class="count">' + list.length + ' dossier' + (list.length > 1 ? 's' : '') + ' affiché' + (list.length > 1 ? 's' : '') + '</p>';
     } else {
       html += '<div class="kanban">' + STATUTS_D.map(function (st) {
         var col = list.filter(function (d) { return d.statut === st; });
@@ -310,6 +348,11 @@
       return true;
     });
   }
+  function sortS(a, b) {
+    var da = a.statut === 'Terminé' ? 1 : 0, db = b.statut === 'Terminé' ? 1 : 0;
+    if (da !== db) return da - db;
+    return (a.echeance || '9999') < (b.echeance || '9999') ? -1 : 1;
+  }
   function sujetRef(s) { var d = dossierById(s.dossierId); return d ? '<a href="#" data-action="open" data-id="' + d.id + '">' + esc(d.ref) + '</a>' : '<span class="muted">Hors dossier</span>'; }
   function renderSujets() {
     var el = $('#view-sujets');
@@ -318,14 +361,15 @@
     var html = '<div class="head"><h1>Sujets</h1><div class="seg">' +
       '<button data-action="smode" data-mode="kanban" class="' + (ui.smode === 'kanban' ? 'is-on' : '') + '">Tableau</button>' +
       '<button data-action="smode" data-mode="liste" class="' + (ui.smode === 'liste' ? 'is-on' : '') + '">Liste</button></div></div>' +
-      '<div class="filters">' +
+      '<div class="filters' + (ui.fopen ? ' is-open' : '') + '">' +
         '<input type="search" id="sq" placeholder="Rechercher un sujet…" value="' + esc(ui.sq) + '" aria-label="Rechercher">' +
+        '<button type="button" class="btn btn--line btn--sm filters__toggle" data-action="toggle-filters">Filtres' + nActive(ui.sf) + '</button><div class="filters__more">' +
         '<select data-filter="s:statut" aria-label="Statut">' + opts(STATUTS_S, ui.sf.statut, 'Tous les statuts') + '</select>' +
         '<select data-filter="s:dossier" aria-label="Dossier"><option value="">Tous les dossiers</option><option value="__none"' + (ui.sf.dossier === '__none' ? ' selected' : '') + '>Hors dossier</option>' +
           state.dossiers.map(function (d) { return '<option value="' + d.id + '"' + (ui.sf.dossier === d.id ? ' selected' : '') + '>' + esc(d.ref + ' — ' + d.titre) + '</option>'; }).join('') + '</select>' +
         '<select data-filter="s:resp" aria-label="Assigné">' + opts(Object.keys(people).sort(), ui.sf.resp, 'Tous les assignés') + '</select>' +
         '<select data-filter="s:cat" aria-label="Catégorie">' + opts(CATS, ui.sf.cat, 'Toutes catégories') + '</select>' +
-        '<button class="btn btn--line btn--sm" data-action="reset-s">Réinitialiser</button></div>';
+        '<button class="btn btn--line btn--sm" data-action="reset-s">Réinitialiser</button></div></div>';
     if (!state.sujets.length) {
       el.innerHTML = html + emptyBlock('Aucun sujet pour le moment', 'Un sujet est un point à traiter : une analyse, une relance, une réunion, une veille. Il peut être rattaché à un dossier ou rester indépendant.',
         '<div class="empty__actions"><button class="btn btn--brown" data-action="new-sujet">Créer un sujet</button><button class="btn btn--line" data-action="examples">Charger les dossiers de démonstration</button></div>');
@@ -334,12 +378,16 @@
     if (!list.length) { el.innerHTML = html + emptyBlock('Aucun résultat', 'Aucun sujet ne correspond à ces critères.', '<button class="btn btn--line" data-action="reset-s">Réinitialiser les filtres</button>'); return bindSearch(); }
 
     if (ui.smode === 'liste') {
-      html += '<div class="tablewrap"><table class="tbl"><thead><tr><th></th><th>Sujet</th><th>Dossier</th><th>Catégorie</th><th>Statut</th><th>Priorité</th><th>Assigné</th><th>Échéance</th></tr></thead><tbody>' +
-        list.slice().sort(function (a, b) { return (a.echeance || '9999') < (b.echeance || '9999') ? -1 : 1; }).map(function (s) {
+      html += '<div class="tablewrap desk"><table class="tbl"><thead><tr><th></th><th>Sujet</th><th>Dossier</th><th>Catégorie</th><th>Statut</th><th>Priorité</th><th>Assigné</th><th>Échéance</th></tr></thead><tbody>' +
+        list.slice().sort(sortS).map(function (s) {
           return '<tr><td><input type="checkbox" data-action="toggle-s" data-id="' + s.id + '"' + (s.statut === 'Terminé' ? ' checked' : '') + ' aria-label="Marquer comme terminé"></td>' +
             '<td><a href="#" class="strong' + (s.statut === 'Terminé' ? ' done' : '') + '" data-action="edit-sujet" data-id="' + s.id + '">' + esc(s.titre) + '</a></td><td>' + sujetRef(s) + '</td><td>' + esc(s.categorie) + '</td>' +
             '<td>' + badge(s.statut, 'ss-' + slug(s.statut)) + '</td><td>' + badge(s.priorite, 'p-' + slug(s.priorite)) + '</td><td>' + esc(s.assigne || '—') + '</td><td>' + dueTag(s.echeance, s.statut === 'Terminé') + '</td></tr>';
-        }).join('') + '</tbody></table></div><p class="count">' + list.length + ' sujet' + (list.length > 1 ? 's' : '') + '</p>';
+        }).join('') + '</tbody></table></div><div class="mcards">' + list.slice().sort(sortS).map(function (s) {
+          return '<article class="mcard mcard--s"><label class="mcard__chk"><input type="checkbox" data-action="toggle-s" data-id="' + s.id + '"' + (s.statut === 'Terminé' ? ' checked' : '') + ' aria-label="Marquer comme terminé"></label>' +
+            '<div class="mcard__main" data-action="edit-sujet" data-id="' + s.id + '"><h3 class="' + (s.statut === 'Terminé' ? 'done' : '') + '">' + esc(s.titre) + '</h3><p>' + (dossierById(s.dossierId) ? esc(dossierById(s.dossierId).titre) : 'Hors dossier') + (s.assigne ? ' · ' + esc(s.assigne) : '') + '</p>' +
+            '<div class="mcard__row">' + badge(s.statut, 'ss-' + slug(s.statut)) + badge(s.priorite, 'p-' + slug(s.priorite)) + dueTag(s.echeance, s.statut === 'Terminé') + '</div></div></article>';
+        }).join('') + '</div><p class="count">' + list.length + ' sujet' + (list.length > 1 ? 's' : '') + '</p>';
     } else {
       html += '<div class="kanban kanban--4">' + STATUTS_S.map(function (st) {
         var col = list.filter(function (s) { return s.statut === st; });
@@ -483,8 +531,8 @@
     var steps = STATUTS_D.slice(0, 6);
     var idx = steps.indexOf(d.statut);
     dr.innerHTML =
-      '<header class="dr__head"><div><span class="mono">' + esc(d.ref) + '</span><h2>' + esc(d.titre) + '</h2><p>' + esc(d.client) + (d.pays ? ' · ' + esc(d.pays) : '') + '</p></div>' +
-      '<button class="x" data-action="close-drawer" aria-label="Fermer">&times;</button></header>' +
+      '<header class="dr__head"><div class="dr__top"><button class="btn btn--line btn--sm" data-action="close-drawer">← Retour</button><span class="mono">' + esc(d.ref) + '</span></div>' +
+      '<h2>' + esc(d.titre) + '</h2><p>' + esc(d.client) + (d.pays && d.client.indexOf(d.pays) === -1 ? ' · ' + esc(d.pays) : '') + '</p></header>' +
       '<div class="dr__body">' +
         '<div class="steps">' + steps.map(function (s, i) {
           return '<button data-action="set-statut" data-statut="' + esc(s) + '" class="' + (i < idx ? 'is-past ' : '') + (i === idx ? 'is-now' : '') + '">' + esc(s) + '</button>';
@@ -587,8 +635,8 @@
     if (t.tagName === 'SELECT' || t.tagName === 'FORM' || (t.tagName === 'INPUT' && t.type === 'checkbox')) return;
     if (t.tagName === 'A') e.preventDefault();
     switch (a) {
-      case 'new-dossier': openDossierForm(); break;
-      case 'new-sujet': openSujetForm(); break;
+      case 'new-dossier': hideAdd(); openDossierForm(); break;
+      case 'new-sujet': hideAdd(); openSujetForm(); break;
       case 'new-sujet-for': openSujetForm(null, id); break;
       case 'edit-dossier': openDossierForm(id); break;
       case 'edit-sujet': openSujetForm(id); break;
@@ -597,6 +645,8 @@
       case 'close-drawer': closeDrawer(); break;
       case 'pzoom': ui.plan.zoom = t.dataset.zoom; ui.plan.scrollTo = 'today'; render(); break;
       case 'ptoday': ui.plan.scrollTo = 'today'; render(); break;
+      case 'toggle-filters': ui.fopen = !ui.fopen; render(); break;
+      case 'toggle-add': ui.addmenu = !ui.addmenu; $('#addmenu').hidden = !ui.addmenu; break;
       case 'dmode': ui.dmode = t.dataset.mode; render(); break;
       case 'smode': ui.smode = t.dataset.mode; render(); break;
       case 'reset-d': ui.dq = ''; ui.df = { statut: '', secteur: '', resp: '', prio: '' }; render(); break;
@@ -626,6 +676,7 @@
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-action="open"]')) { e.preventDefault(); openDrawer(e.target.dataset.id); }
   });
   $('#scrim').addEventListener('click', closeDrawer);
+  document.addEventListener('click', function (e) { if (ui.addmenu && !e.target.closest('.addwrap')) hideAdd(); });
   $('#tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-view]'); if (b) setView(b.dataset.view); });
 
   document.addEventListener('change', function (e) {

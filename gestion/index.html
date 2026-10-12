@@ -16,20 +16,23 @@
 
 <header class="bar">
   <div class="bar__inner">
+    <a class="bar__back" href="../" aria-label="Retour au site"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Retour au site</span></a>
     <a class="bar__brand" href="../" title="Retour au site">
       <img src="../assets/img/logo.png" alt="">
       <span><strong>Africa Strategy</strong><small>Espace de gestion</small></span>
     </a>
     <nav class="tabs" id="tabs" aria-label="Sections">
-      <button data-view="dashboard" class="is-active">Tableau de bord</button>
-      <button data-view="dossiers">Dossiers <i id="n-dossiers">0</i></button>
-      <button data-view="sujets">Sujets <i id="n-sujets">0</i></button>
-      <button data-view="planning">Planning</button>
-      <button data-view="donnees">Données</button>
+      <button data-view="dashboard" class="is-active"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Tableau de bord</span></button>
+      <button data-view="dossiers"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Dossiers</span> <i id="n-dossiers">0</i></button>
+      <button data-view="sujets"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg><span>Sujets</span> <i id="n-sujets">0</i></button>
+      <button data-view="planning"><svg viewBox="0 0 24 24"><path d="M3 5h10M7 12h14M5 19h9"/></svg><span>Planning</span></button>
+      <button data-view="donnees"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Données</span></button>
     </nav>
     <div class="bar__actions">
-      <button class="btn btn--light" data-action="new-sujet">+ Sujet</button>
-      <button class="btn btn--gold" data-action="new-dossier">+ Dossier</button>
+      <button class="btn btn--light bar__desk" data-action="new-sujet">+ Sujet</button>
+      <button class="btn btn--gold bar__desk" data-action="new-dossier">+ Dossier</button>
+      <div class="addwrap"><button class="btn btn--gold bar__mob" data-action="toggle-add" aria-label="Ajouter" aria-haspopup="true">+ Ajouter</button>
+        <div class="addmenu" id="addmenu" hidden><button data-action="new-dossier">Nouveau dossier</button><button data-action="new-sujet">Nouveau sujet</button></div></div>
     </div>
   </div>
 </header>
@@ -54,7 +57,7 @@
 <!-- Formulaire dossier -->
 <dialog id="dlg-dossier" class="dlg">
   <form method="dialog" id="f-dossier" novalidate>
-    <header class="dlg__head"><h2 id="dlg-dossier-title">Nouveau dossier</h2><button type="button" class="x" data-action="close-dlg" aria-label="Fermer">&times;</button></header>
+    <header class="dlg__head"><button type="button" class="btn btn--line btn--sm" data-action="close-dlg">← Retour</button><h2 id="dlg-dossier-title">Nouveau dossier</h2></header>
     <div class="dlg__body">
       <input type="hidden" name="id">
       <label class="full">Intitulé du dossier *<input name="titre" required placeholder="Ex. : Financement d'une centrale solaire"></label>
@@ -83,7 +86,7 @@
 <!-- Formulaire sujet -->
 <dialog id="dlg-sujet" class="dlg">
   <form method="dialog" id="f-sujet" novalidate>
-    <header class="dlg__head"><h2 id="dlg-sujet-title">Nouveau sujet</h2><button type="button" class="x" data-action="close-dlg" aria-label="Fermer">&times;</button></header>
+    <header class="dlg__head"><button type="button" class="btn btn--line btn--sm" data-action="close-dlg">← Retour</button><h2 id="dlg-sujet-title">Nouveau sujet</h2></header>
     <div class="dlg__body">
       <input type="hidden" name="id">
       <label class="full">Sujet *<input name="titre" required placeholder="Ex. : Relancer le fonds sur la note d'information"></label>
