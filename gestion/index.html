@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Espace de gestion — Africa Strategy</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#24160f">
+  <link rel="icon" type="image/png" href="../assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gestion.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar__inner">
+    <a class="bar__brand" href="../" title="Retour au site">
+      <img src="../assets/img/logo.png" alt="">
+      <span><strong>Africa Strategy</strong><small>Espace de gestion</small></span>
+    </a>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <button data-view="dashboard" class="is-active">Tableau de bord</button>
+      <button data-view="dossiers">Dossiers <i id="n-dossiers">0</i></button>
+      <button data-view="sujets">Sujets <i id="n-sujets">0</i></button>
+      <button data-view="donnees">Données</button>
+    </nav>
+    <div class="bar__actions">
+      <button class="btn btn--light" data-action="new-sujet">+ Sujet</button>
+      <button class="btn btn--gold" data-action="new-dossier">+ Dossier</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+  <section id="view-dashboard" class="view"></section>
+  <section id="view-dossiers" class="view" hidden></section>
+  <section id="view-sujets" class="view" hidden></section>
+  <section id="view-donnees" class="view" hidden></section>
+</main>
+
+<footer class="foot">
+  Espace de gestion — Africa Strategy · Développé par <strong>Nendja</strong> ·
+  <a href="../">Retour au site</a>
+</footer>
+
+<!-- Fiche dossier -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Fiche dossier"></aside>
+
+<!-- Formulaire dossier -->
+<dialog id="dlg-dossier" class="dlg">
+  <form method="dialog" id="f-dossier" novalidate>
+    <header class="dlg__head"><h2 id="dlg-dossier-title">Nouveau dossier</h2><button type="button" class="x" data-action="close-dlg" aria-label="Fermer">&times;</button></header>
+    <div class="dlg__body">
+      <input type="hidden" name="id">
+      <label class="full">Intitulé du dossier *<input name="titre" required placeholder="Ex. : Financement d'une centrale solaire"></label>
+      <label>Client / organisation *<input name="client" required></label>
+      <label>Type de client<select name="typeClient"></select></label>
+      <label>Pays<input name="pays" placeholder="Sénégal"></label>
+      <label>Secteur<select name="secteur"></select></label>
+      <label class="full">Service concerné<select name="service"></select></label>
+      <label>Statut<select name="statut"></select></label>
+      <label>Priorité<select name="priorite"></select></label>
+      <label>Responsable<input name="responsable" list="dl-resp" placeholder="Nom du responsable"></label>
+      <label>Date d'ouverture<input type="date" name="ouverture"></label>
+      <label>Montant estimé<input type="number" name="montant" min="0" step="any" placeholder="0"></label>
+      <label>Devise<select name="devise"></select></label>
+      <label>Échéance<input type="date" name="echeance"></label>
+      <label class="full">Description / contexte<textarea name="notes" rows="4" placeholder="Enjeux, interlocuteurs, prochaines étapes…"></textarea></label>
+    </div>
+    <footer class="dlg__foot">
+      <p class="err" id="err-dossier" role="alert"></p>
+      <button type="button" class="btn btn--line" data-action="close-dlg">Annuler</button>
+      <button type="submit" class="btn btn--brown">Enregistrer</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Formulaire sujet -->
+<dialog id="dlg-sujet" class="dlg">
+  <form method="dialog" id="f-sujet" novalidate>
+    <header class="dlg__head"><h2 id="dlg-sujet-title">Nouveau sujet</h2><button type="button" class="x" data-action="close-dlg" aria-label="Fermer">&times;</button></header>
+    <div class="dlg__body">
+      <input type="hidden" name="id">
+      <label class="full">Sujet *<input name="titre" required placeholder="Ex. : Relancer le fonds sur la note d'information"></label>
+      <label class="full">Dossier rattaché<select name="dossierId"></select></label>
+      <label>Catégorie<select name="categorie"></select></label>
+      <label>Statut<select name="statut"></select></label>
+      <label>Priorité<select name="priorite"></select></label>
+      <label>Assigné à<input name="assigne" list="dl-resp" placeholder="Nom"></label>
+      <label>Échéance<input type="date" name="echeance"></label>
+      <label class="full">Notes<textarea name="notes" rows="3"></textarea></label>
+    </div>
+    <footer class="dlg__foot">
+      <p class="err" id="err-sujet" role="alert"></p>
+      <button type="button" class="btn btn--line" data-action="close-dlg">Annuler</button>
+      <button type="submit" class="btn btn--brown">Enregistrer</button>
+    </footer>
+  </form>
+</dialog>
+
+<datalist id="dl-resp"></datalist>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="file-import" accept="application/json,.json" hidden>
+
+<script src="gestion.js"></script>
+</body>
+</html>
